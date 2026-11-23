@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.pow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private enum class Page { HOME, PRACTICE, PROGRESS, PROFILE }
 private val notes = listOf("Do","Do♯","Re","Re♯","Mi","Fa","Fa♯","Sol","Sol♯","La","La♯","Si")
@@ -54,6 +56,8 @@ private fun MusicApp() {
     var message by remember { mutableStateOf("Toca la nota indicada para ganar puntos.") }
     var audioUri by remember { mutableStateOf<Uri?>(null) }
     var audioName by remember { mutableStateOf("No has seleccionado una canción") }
+    var detectedNotes by remember { mutableStateOf(emptyList<String>()) }
+    var analysisMessage by remember { mutableStateOf("Carga un WAV PCM para analizar sus notas.") }
     var media by remember { mutableStateOf<MediaPlayer?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -61,6 +65,17 @@ private fun MusicApp() {
             audioName = uri.lastPathSegment?.substringAfterLast('/') ?: "Audio seleccionado"
             runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
         }
+    }
+    LaunchedEffect(audioUri) {
+        val uri = audioUri ?: return@LaunchedEffect
+        val result = runCatching {
+            withContext(Dispatchers.IO) {
+                context.contentResolver.openInputStream(uri)?.use { WavPitchAnalyzer.analyze(it.readBytes()) }
+                    ?: error("No se pudo leer el archivo.")
+            }
+        }
+        detectedNotes = result.getOrNull()?.notes ?: emptyList()
+        analysisMessage = result.fold({ "Análisis terminado · ${it.notes.size} notas diferentes detectadas" }, { it.message ?: "No se pudo analizar este audio." })
     }
     val bg = if (dark) Color(0xFF10121C) else Color(0xFFF3F4FA)
     val card = if (dark) Color(0xFF1C2030) else Color.White
@@ -98,7 +113,7 @@ private fun MusicApp() {
             Spacer(Modifier.height(12.dp))
             when (page) {
                 Page.HOME -> HomePage(name, points, played, instrument, fg, muted, card, accent, { page = Page.PRACTICE }) { instrument = it; page = Page.PRACTICE }
-                Page.PRACTICE -> PracticePage(instrument, target, streak, message, fg, muted, card, accent, audioName,
+                Page.PRACTICE -> PracticePage(instrument, target, streak, message, fg, muted, card, accent, audioName, detectedNotes, analysisMessage,
                     onInstrument = { instrument = it }, onHit = { hit(it) }, onTarget = { target = it },
                     onPick = { picker.launch(arrayOf("audio/*")) },
                     onPlay = { runCatching { media?.release(); media = MediaPlayer().apply { setDataSource(context, audioUri!!); prepare(); start() } }.onFailure { audioName = "No se pudo abrir el audio seleccionado" } },
@@ -160,7 +175,7 @@ private fun Metric(emoji: String, value: String, label: String, fg: Color, accen
 }
 @Composable
 private fun PracticePage(instrument: Instrument, target: Int, streak: Int, message: String, fg: Color, muted: Color, card: Color, accent: Color, audioName: String,
-    onInstrument: (Instrument) -> Unit, onHit: (Int) -> Unit, onTarget: (Int) -> Unit, onPick: () -> Unit, onPlay: () -> Unit, onStop: () -> Unit) {
+    onInstrument: (Instrument) -> Unit, onHit: (Int) -> Unit, onTarget: (Int) -> Unit, onPick: () -> Unit, onPlay: () -> Unit, onStop: () -> Unit, detectedNotes: List<String> = emptyList(), analysisMessage: String = "") {
     val focus = remember { FocusRequester() }
     var octave by remember { mutableIntStateOf(4) }
     var guide by remember { mutableStateOf(true) }
@@ -205,6 +220,8 @@ private fun PracticePage(instrument: Instrument, target: Int, streak: Int, messa
                 IconButton(onClick = onStop) { Icon(Icons.Default.Stop, "Detener", tint = fg) }
             }
             Text("Importa un audio para escucharlo mientras practicas.", color = muted, fontSize = 10.sp)
+            Text(analysisMessage, color = accent, fontSize = 10.sp)
+            if (detectedNotes.isNotEmpty()) Text("Notas: ${detectedNotes.joinToString(" · ")}", color = fg, fontSize = 11.sp)
         }
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
