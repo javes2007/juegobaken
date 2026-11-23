@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.key.*
 import androidx.compose.material.icons.Icons
@@ -166,7 +167,7 @@ private fun PracticePage(instrument: Instrument, target: Int, streak: Int, messa
     Column(Modifier.fillMaxSize().focusRequester(focus).onPreviewKeyEvent { event ->
         if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
         val keys = mapOf(Key.A to 0, Key.S to 2, Key.D to 4, Key.F to 5, Key.G to 7, Key.H to 9, Key.J to 11, Key.K to 12, Key.L to 14,
-            Key.W to 1, Key.E to 3, Key.T to 6, Key.Y to 8, Key.U to 10, Key.I to 13, Key.O to 15)
+            Key.W to 1, Key.E to 3, Key.T to 6, Key.Y to 8, Key.U to 10, Key.I to 13, Key.O to 15, Key.Semicolon to 16)
         val offset = keys[event.key] ?: return@onPreviewKeyEvent false
         onHit(60 + offset); true
     }.focusable()) {
@@ -192,7 +193,7 @@ private fun PracticePage(instrument: Instrument, target: Int, streak: Int, messa
             Text("C$octave", color = fg)
             IconButton(onClick = { octave = (octave + 1).coerceAtMost(6) }) { Icon(Icons.Default.Add, "Subir octava", tint = fg) }
         }
-        if (guide) Text("PC: A S D F G H J K L · Negras: W E T Y U I O", color = muted, fontSize = 10.sp)
+        if (guide) Text("PC: A S D F G H J K L Ñ · Negras: W E T Y U I O", color = muted, fontSize = 10.sp)
         PianoKeys(octave, onHit)
         Spacer(Modifier.height(8.dp))
         CardBox(card) {
