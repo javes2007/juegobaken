@@ -174,8 +174,8 @@ private fun Metric(emoji: String, value: String, label: String, fg: Color, accen
     }
 }
 @Composable
-private fun PracticePage(instrument: Instrument, target: Int, streak: Int, message: String, fg: Color, muted: Color, card: Color, accent: Color, audioName: String,
-    onInstrument: (Instrument) -> Unit, onHit: (Int) -> Unit, onTarget: (Int) -> Unit, onPick: () -> Unit, onPlay: () -> Unit, onStop: () -> Unit, detectedNotes: List<String> = emptyList(), analysisMessage: String = "") {
+private fun PracticePage(instrument: Instrument, target: Int, streak: Int, message: String, fg: Color, muted: Color, card: Color, accent: Color, audioName: String, detectedNotes: List<String>, analysisMessage: String,
+    onInstrument: (Instrument) -> Unit, onHit: (Int) -> Unit, onTarget: (Int) -> Unit, onPick: () -> Unit, onPlay: () -> Unit, onStop: () -> Unit) {
     val focus = remember { FocusRequester() }
     var octave by remember { mutableIntStateOf(4) }
     var guide by remember { mutableStateOf(true) }
